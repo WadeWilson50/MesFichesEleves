@@ -1,0 +1,2177 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Fiches Élèves — Suivi Scolaire & Google Drive</title>
+  <meta name="theme-color" content="#0f172a" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Fiches Élèves" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.8.0/mammoth.browser.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+    @media print {
+      .no-print { display: none !important; }
+      body { background: white !important; }
+      #mainPrintArea {
+        box-shadow: none !important;
+        border: none !important;
+        padding: 0 !important;
+        max-width: 100% !important;
+      }
+    }
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #f1f5f9;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 3px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+  </style>
+</head>
+<body class="bg-slate-100 text-slate-900 min-h-screen flex flex-col">
+
+  <!-- Barre supérieure -->
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-30 no-print">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-3">
+      <div class="flex items-center gap-3 min-w-0">
+        <div class="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center font-bold text-lg shadow-sm shrink-0">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+          </svg>
+        </div>
+        <div class="min-w-0">
+          <div class="flex items-center gap-2 flex-wrap">
+            <h1 class="text-base sm:text-lg font-extrabold text-slate-900 tracking-tight truncate">Fiches Élèves</h1>
+            <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
+              v2.9
+            </span>
+            <span id="modeBadge" class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-700 border border-slate-200">
+              <span id="driveDot" class="w-2 h-2 rounded-full bg-slate-400"></span>
+              <span id="modeBadgeText">Non connecté</span>
+            </span>
+          </div>
+          <p class="text-xs text-slate-500 hidden sm:block truncate">Regroupement par école, consultation des fiches & commentaires synchronisés</p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2 shrink-0">
+        <!-- Bouton d'installation -->
+        <button id="btnInstallApp" class="hidden inline-flex items-center gap-1.5 px-3 py-2 text-xs sm:text-sm font-semibold text-indigo-700 bg-indigo-50 border border-indigo-200 rounded-lg hover:bg-indigo-100 transition shadow-sm" title="Installer comme application sur l'ordinateur ou la tablette">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+          </svg>
+          <span>Installer l'app</span>
+        </button>
+
+        <!-- Connexion rapide Google Drive -->
+        <button id="btnConnectDrive" class="inline-flex items-center gap-1.5 px-3 py-2 text-xs sm:text-sm font-semibold text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition shadow-sm">
+          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M7.71 3.5L1.15 15l3.43 6 6.55-11.5L7.71 3.5zm1.72 0l6.56 11.5h6.86L16.29 3.5H9.43zm5.99 12.5H2.57l-1.71 3h19.14l1.71-3H15.42z"/>
+          </svg>
+          <span id="btnConnectDriveLabel">Connecter Drive</span>
+        </button>
+
+        <!-- Paramètres -->
+        <button id="btnOpenSettings" class="inline-flex items-center gap-1.5 px-3 py-2 text-xs sm:text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition" title="Paramètres Drive & Prompt Gemini">
+          <svg class="w-4 h-4 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+          </svg>
+          <span class="hidden md:inline">Paramètres</span>
+        </button>
+
+        <!-- Imprimer -->
+        <button id="btnPrint" class="inline-flex items-center gap-1.5 px-3 py-2 text-xs sm:text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition">
+          <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+          </svg>
+          <span class="hidden sm:inline">Imprimer</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Contenu principal -->
+  <div class="max-w-7xl w-full mx-auto px-4 sm:px-6 py-6 flex-1 grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+    <!-- Colonne de gauche : Écoles & Liste des élèves -->
+    <aside class="lg:col-span-4 xl:col-span-3 space-y-4 no-print">
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
+        <div class="p-4 bg-slate-900 text-white">
+          <div class="flex items-center justify-between gap-2 mb-2">
+            <span class="text-xs font-bold uppercase tracking-wider text-slate-300">Écoles & Élèves</span>
+            <button id="btnSyncSchool" class="inline-flex items-center gap-1.5 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-500 px-2.5 py-1.5 rounded-lg transition shadow-sm" title="Synchroniser tous les élèves de l'école sélectionnée">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              <span>Synchro École</span>
+            </button>
+          </div>
+
+          <!-- Barre de progression de synchronisation de l'école -->
+          <div id="schoolSyncProgressBox" class="hidden mb-3 bg-slate-800 border border-slate-700 rounded-lg p-2.5">
+            <div class="flex items-center justify-between text-[11px] font-medium text-blue-300 mb-1">
+              <span id="schoolSyncProgressText">Synchronisation de l'école...</span>
+              <span id="schoolSyncProgressCount">0/0</span>
+            </div>
+            <div class="w-full h-1.5 bg-slate-700 rounded-full overflow-hidden">
+              <div id="schoolSyncProgressBar" class="h-full bg-blue-500 transition-all duration-200" style="width: 0%"></div>
+            </div>
+          </div>
+
+          <label class="block text-[11px] font-medium text-slate-400 mb-1" for="schoolSelect">École sélectionnée</label>
+          <div class="flex items-center gap-1.5">
+            <select id="schoolSelect" class="flex-1 min-w-0 bg-slate-800 border border-slate-700 text-white text-sm rounded-lg px-2.5 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+              <option value="ALL">Toutes les écoles</option>
+            </select>
+            <button id="btnEditSchoolName" class="shrink-0 p-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 rounded-lg transition" title="Renommer l'école sélectionnée">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+              </svg>
+            </button>
+          </div>
+
+          <!-- Formulaire en ligne pour renommer l'école -->
+          <div id="renameSchoolBox" class="hidden mt-2.5 bg-slate-800 border border-slate-700 rounded-lg p-2.5 space-y-2">
+            <div class="flex items-center justify-between">
+              <span class="text-[11px] font-semibold text-blue-300">Nom personnalisé de l'école</span>
+              <span id="renameSchoolOriginal" class="text-[10px] text-slate-400 truncate max-w-[130px]"></span>
+            </div>
+            <input type="text" id="inputSchoolCustomName" placeholder="Ex : École Notre-Dame (SSV)" class="w-full bg-slate-900 border border-slate-600 rounded-md px-2.5 py-1.5 text-xs text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            <div class="flex items-center justify-end gap-1.5">
+              <button id="btnResetSchoolName" class="px-2 py-1 text-[11px] font-medium text-slate-300 hover:text-white transition">Rétablir</button>
+              <button id="btnCancelRenameSchool" class="px-2 py-1 text-[11px] font-medium text-slate-300 hover:text-white transition">Annuler</button>
+              <button id="btnSaveSchoolName" class="px-2.5 py-1 text-[11px] font-bold bg-blue-600 hover:bg-blue-500 text-white rounded-md transition">Enregistrer</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Recherche -->
+        <div class="p-3 border-b border-slate-200 bg-slate-50">
+          <div class="relative">
+            <input type="text" id="searchInput" placeholder="Rechercher un élève..." class="w-full pl-8 pr-3 py-2 text-sm bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            <svg class="w-4 h-4 text-slate-400 absolute left-2.5 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+          </div>
+        </div>
+
+        <!-- Liste des élèves -->
+        <div id="studentList" class="divide-y divide-slate-200 max-h-[560px] overflow-y-auto"></div>
+
+        <!-- Pied de carte -->
+        <div class="p-3 bg-slate-50 border-t border-slate-200 flex items-center justify-between text-xs text-slate-600 font-medium">
+          <span id="studentCountLabel">0 élève</span>
+          <span id="lastGlobalSyncLabel">Mémoire locale</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Colonne de droite : Fiche de l'élève -->
+    <main class="lg:col-span-8 xl:col-span-9 space-y-5">
+
+      <!-- Écran d'accueil si aucun élève n'est encore chargé -->
+      <div id="emptyStateContainer" class="bg-white rounded-2xl border border-slate-200 shadow-sm p-8 sm:p-12 text-center space-y-4">
+        <div class="w-16 h-16 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center mx-auto">
+          <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+          </svg>
+        </div>
+        <h2 class="text-xl font-extrabold text-slate-900">Aucun dossier élève en mémoire</h2>
+        <p class="text-sm text-slate-600 max-w-md mx-auto leading-relaxed">
+          Connectez votre compte Google Drive pour importer automatiquement vos écoles et les dossiers de vos élèves. Une fois chargés, ils resteront enregistrés dans la mémoire de l'application.
+        </p>
+        <div class="pt-2 flex flex-wrap justify-center gap-3">
+          <button id="btnEmptyConnect" class="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-white bg-emerald-600 rounded-xl hover:bg-emerald-700 transition shadow-sm">
+            Connecter mon Google Drive
+          </button>
+          <button id="btnEmptySettings" class="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-slate-700 bg-white border border-slate-300 rounded-xl hover:bg-slate-50 transition">
+            Configurer les identifiants
+          </button>
+        </div>
+      </div>
+
+      <!-- Conteneur de la fiche élève -->
+      <div id="studentDetailContainer" class="hidden space-y-5">
+
+        <!-- En-tête de l'élève -->
+        <div id="mainPrintArea" class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+          <div class="p-5 sm:p-6 border-b border-slate-200 bg-gradient-to-r from-slate-50 to-white">
+            <div class="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+              <div class="space-y-2">
+                <div class="flex flex-wrap items-center gap-2">
+                  <span id="schoolBadge" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-bold bg-slate-900 text-white"></span>
+                  <div class="inline-flex items-center gap-1 bg-blue-50 text-blue-800 border border-blue-200 rounded-md px-2 py-0.5 text-xs font-bold" title="Modifier la classe de l'élève">
+                    <span>Classe :</span>
+                    <select id="studentLevelSelect" class="bg-transparent font-extrabold text-blue-900 focus:outline-none cursor-pointer pr-1">
+                      <option value="PS">PS</option>
+                      <option value="MS">MS</option>
+                      <option value="GS">GS</option>
+                      <option value="CP">CP</option>
+                      <option value="CE1">CE1</option>
+                      <option value="CE2">CE2</option>
+                      <option value="CM1">CM1</option>
+                      <option value="CM2">CM2</option>
+                      <option value="6ème">6ème</option>
+                      <option value="5ème">5ème</option>
+                      <option value="4ème">4ème</option>
+                      <option value="3ème">3ème</option>
+                      <option value="ULIS">ULIS</option>
+                      <option value="Suivi">Suivi</option>
+                    </select>
+                  </div>
+                  <span id="studentBirthYearBadge" class="hidden inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold bg-slate-100 text-slate-700 border border-slate-200"></span>
+                </div>
+
+                <h2 id="studentNameTitle" class="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight"></h2>
+
+                <p class="text-xs text-slate-500 flex flex-wrap items-center gap-x-2 gap-y-1">
+                  <span>Dossier Drive : <strong id="studentFolderLabel" class="font-semibold text-slate-700"></strong></span>
+                  <span>•</span>
+                  <span id="studentDocsCountLabel" class="font-medium text-slate-600">0 document</span>
+                </p>
+              </div>
+
+              <!-- Boutons d'action de la fiche -->
+              <div class="flex flex-wrap items-center gap-2 shrink-0 no-print">
+                <a id="btnOpenFolderDrive" href="#" target="_blank" rel="noopener" class="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-slate-700 bg-white border border-slate-300 rounded-xl hover:bg-slate-50 transition shadow-sm">
+                  <svg class="w-4 h-4 text-amber-500" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/>
+                  </svg>
+                  <span>Ouvrir dossier Drive</span>
+                </a>
+
+                <button id="btnRefreshStudentDocs" class="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-blue-700 bg-blue-50 border border-blue-200 rounded-xl hover:bg-blue-100 transition shadow-sm" title="Synchroniser uniquement cet élève">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                  <span>Synchro Élève</span>
+                </button>
+
+                <button id="btnOpenGeminiPrompt" class="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold text-white bg-indigo-600 rounded-xl hover:bg-indigo-700 transition shadow-sm">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                  </svg>
+                  <span>Synthèse Gemini</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Corps de la fiche : Pavé 1 (Document Fiche), Pavé 2 (Commentaires sauvegardés Drive), Pavé 3 (Documents Drive) -->
+          <div class="p-5 sm:p-6 space-y-7">
+
+            <!-- PAVÉ 1 : Contenu du document "Fiche" de l'élève -->
+            <section class="space-y-3">
+              <div class="flex flex-wrap items-center justify-between gap-2">
+                <div class="flex items-center gap-2.5">
+                  <span class="w-7 h-7 rounded-lg bg-blue-600 text-white flex items-center justify-center font-bold text-xs shadow-sm">1</span>
+                  <div>
+                    <h3 class="text-sm font-extrabold uppercase tracking-wider text-slate-900">Document « Fiche » de l'élève</h3>
+                    <p id="ficheSourceSubtitle" class="text-xs text-slate-500">Contenu extrait automatiquement du fichier Fiche du dossier</p>
+                  </div>
+                </div>
+                <div class="flex flex-wrap items-center gap-2 no-print">
+                  <button id="btnToggleFicheSelector" class="hidden inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition" title="Choisir manuellement le document Fiche de référence">
+                    <svg class="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                    </svg>
+                    <span>Changer de fichier</span>
+                  </button>
+                  <a id="btnOpenFicheDocDirect" href="#" target="_blank" rel="noopener" class="hidden inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-blue-700 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition">
+                    <span>Ouvrir le fichier</span>
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                    </svg>
+                  </a>
+                </div>
+              </div>
+
+              <!-- Sélecteur manuel du document Fiche de référence -->
+              <div id="ficheReferenceSelectorBox" class="hidden bg-amber-50/80 border border-amber-200 rounded-xl p-4 space-y-2.5 no-print">
+                <div class="flex items-start justify-between gap-2">
+                  <div>
+                    <p id="ficheSelectorPromptTitle" class="text-xs font-bold text-amber-900">Choisir le document « Fiche » de référence</p>
+                    <p class="text-[11px] text-amber-800 mt-0.5">Ce choix sera mémorisé automatiquement pour cet élève lors des prochaines ouvertures.</p>
+                  </div>
+                  <button id="btnCancelFicheSelector" class="hidden text-xs font-semibold text-amber-800 hover:text-amber-950 underline">Fermer</button>
+                </div>
+                <div class="flex flex-col sm:flex-row gap-2">
+                  <select id="selectFicheReferenceDoc" class="flex-1 bg-white border border-amber-300 rounded-lg px-3 py-2 text-xs sm:text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="">-- Sélectionner un document dans le dossier --</option>
+                  </select>
+                  <button id="btnConfirmFicheReference" class="inline-flex items-center justify-center gap-1.5 px-4 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition shadow-sm shrink-0">
+                    Définir comme Fiche
+                  </button>
+                </div>
+              </div>
+
+              <div id="ficheContentCard" class="bg-slate-50 border border-slate-200 rounded-2xl p-4 sm:p-5">
+                <p class="text-sm text-slate-500 italic">Chargement de la fiche de l'élève...</p>
+              </div>
+            </section>
+
+            <!-- PAVÉ 2 : Commentaires & suivi personnel (sauvegardés sur Drive) -->
+            <section class="space-y-3">
+              <div class="flex flex-wrap items-center justify-between gap-2">
+                <div class="flex items-center gap-2.5">
+                  <span class="w-7 h-7 rounded-lg bg-emerald-600 text-white flex items-center justify-center font-bold text-xs shadow-sm">2</span>
+                  <div>
+                    <h3 class="text-sm font-extrabold uppercase tracking-wider text-slate-900">Commentaires & suivi personnel</h3>
+                    <p class="text-xs text-slate-500">Enregistrés en mémoire locale et sauvegardés dans le dossier Google Drive de l'élève (<code class="text-[11px] bg-slate-100 px-1 rounded">Commentaires_Suivi.txt</code>)</p>
+                  </div>
+                </div>
+                <div class="flex items-center gap-2 no-print">
+                  <span id="notesSavedStatus" class="text-xs font-semibold text-emerald-700"></span>
+                  <button id="btnSaveCommentsDrive" class="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition shadow-sm">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                    </svg>
+                    <span>Sauvegarder sur Drive</span>
+                  </button>
+                </div>
+              </div>
+
+              <textarea id="studentNotesTextarea" rows="5" placeholder="Saisissez ici vos observations, remarques de suivi, points d'attention ou collez la synthèse générée par Gemini..." class="w-full bg-white border border-slate-300 rounded-xl p-4 text-sm text-slate-900 leading-relaxed focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 shadow-inner"></textarea>
+            </section>
+
+            <!-- PAVÉ 3 : Tous les documents associés sur Google Drive -->
+            <section class="space-y-3">
+              <div class="flex flex-wrap items-center justify-between gap-2">
+                <div class="flex items-center gap-2.5">
+                  <span class="w-7 h-7 rounded-lg bg-slate-800 text-white flex items-center justify-center font-bold text-xs shadow-sm">3</span>
+                  <div>
+                    <h3 class="text-sm font-extrabold uppercase tracking-wider text-slate-900">Documents associés sur Google Drive</h3>
+                    <p class="text-xs text-slate-500">Cliquez sur « Ouvrir sur Drive » pour consulter n'importe quel bilan ou compte-rendu complet</p>
+                  </div>
+                </div>
+                <span id="docsListBadge" class="text-xs font-bold text-slate-700 bg-slate-100 px-2.5 py-1 rounded-full border border-slate-200">0 document</span>
+              </div>
+
+              <div id="documentsListContainer" class="divide-y divide-slate-200 border border-slate-200 rounded-2xl overflow-hidden bg-white"></div>
+            </section>
+
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- Fenêtre Modale Paramètres -->
+  <div id="settingsModal" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 no-print">
+    <div class="bg-white rounded-2xl max-w-xl w-full shadow-2xl border border-slate-200 overflow-hidden max-h-[90vh] flex flex-col">
+      <div class="p-5 bg-slate-900 text-white flex items-center justify-between shrink-0">
+        <div>
+          <h3 class="font-bold text-base">Configuration Google Drive & Prompt Gemini</h3>
+          <p class="text-xs text-slate-300 mt-0.5">Paramètres enregistrés localement sur votre appareil</p>
+        </div>
+        <button id="btnCloseSettings" class="text-slate-400 hover:text-white p-1">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+
+      <div class="p-5 space-y-4 text-sm overflow-y-auto">
+        <div class="bg-blue-50 border border-blue-200 rounded-xl p-3.5 text-xs text-blue-900 space-y-1">
+          <p class="font-bold">Organisation des dossiers Drive attendue :</p>
+          <p>• Soit un <strong>dossier parent</strong> contenant un sous-dossier par école (chaque école contenant les dossiers élèves), soit directement un <strong>dossier d'école</strong>.</p>
+          <p>• Si un dossier élève contient un fichier dont le nom comporte <strong>« Fiche »</strong>, son contenu s'affichera automatiquement dans la page.</p>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">1. Client ID OAuth Google Cloud</label>
+          <input type="text" id="inputClientId" placeholder="Ex : 123456789-abcdef.apps.googleusercontent.com" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">2. ID du dossier Drive racine</label>
+          <input type="text" id="inputFolderId" placeholder="Ex : 1XN4jTdXaIQP1eCHJ7H3ewwuoiQPNDTzb" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          <p class="text-[11px] text-slate-500 mt-1">Partie située après <code>/folders/</code> dans l'URL Google Drive.</p>
+        </div>
+
+        <div class="pt-2 border-t border-slate-200">
+          <div class="flex items-center justify-between mb-1">
+            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider">3. Modèle de Prompt pour « Synthèse Gemini »</label>
+            <button id="btnResetPrompt" type="button" class="text-[11px] font-semibold text-blue-600 hover:text-blue-800 underline">
+              Rétablir le prompt par défaut
+            </button>
+          </div>
+          <textarea id="inputGeminiPrompt" rows="6" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs leading-relaxed font-mono text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"></textarea>
+          <p class="text-[11px] text-slate-500 mt-1">
+            Variables automatiques : <code>{DOSSIER}</code> (nom du dossier Drive), <code>{ELEVE}</code> (prénom et nom), <code>{ECOLE}</code> (nom de l'école).
+          </p>
+        </div>
+
+        <!-- Sauvegarde / Restauration rapide de la configuration -->
+        <div class="pt-3 border-t border-slate-200 space-y-2.5">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <p class="text-xs font-bold text-slate-700 uppercase tracking-wider">Sauvegarde sur Google Drive</p>
+              <p id="driveConfigFileInfo" class="text-[11px] text-slate-500">Fichier : <code>Configuration_Fiches_Eleves.json</code></p>
+            </div>
+            <a id="btnOpenDriveConfigFile" href="#" target="_blank" rel="noopener" class="hidden inline-flex items-center gap-1 px-2.5 py-1 text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg hover:bg-emerald-100 transition">
+              <span>Ouvrir le fichier sur Drive ↗</span>
+            </a>
+          </div>
+
+          <div class="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-100">
+            <div>
+              <p class="text-xs font-bold text-slate-700 uppercase tracking-wider">Sauvegarde locale de secours</p>
+              <p class="text-[11px] text-slate-500">Copier/coller vos identifiants</p>
+            </div>
+            <div class="flex items-center gap-2">
+              <button id="btnExportConfig" type="button" class="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-300 rounded-lg transition">
+                Copier config
+              </button>
+              <button id="btnImportConfig" type="button" class="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-300 rounded-lg transition">
+                Coller config
+              </button>
+            </div>
+          </div>
+          <div id="importConfigBox" class="hidden space-y-2 pt-1">
+            <textarea id="inputImportConfigJson" rows="3" placeholder="Collez ici la configuration précédemment copiée..." class="w-full border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+            <div class="flex justify-end">
+              <button id="btnApplyImportedConfig" type="button" class="px-3 py-1 text-xs font-bold text-white bg-slate-800 hover:bg-slate-900 rounded-lg">
+                Appliquer cette configuration
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="p-4 bg-slate-50 border-t border-slate-200 flex items-center justify-end gap-2 shrink-0">
+        <button id="btnSaveSettingsOnly" class="px-4 py-2 text-xs font-semibold text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-100 transition">
+          Enregistrer
+        </button>
+        <button id="btnSaveAndConnect" class="px-4 py-2 text-xs font-bold text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition shadow-sm">
+          Enregistrer & Connecter Drive
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Notification flottante -->
+  <div id="toast" class="fixed bottom-5 right-5 z-50 hidden max-w-md bg-slate-900 text-white px-4 py-3 rounded-xl shadow-lg text-sm font-medium flex items-center gap-2.5 border border-slate-700 no-print">
+    <span id="toastIcon" class="w-2.5 h-2.5 rounded-full bg-emerald-400 shrink-0"></span>
+    <span id="toastMessage"></span>
+  </div>
+
+  <script>
+    // =========================================================================
+    // CONFIGURATION & MÉMOIRE INTERNE PERSISTANTE (LOCALSTORAGE + GOOGLE DRIVE)
+    // =========================================================================
+    const STORAGE_KEY_SETTINGS = 'fiches_eleves_settings_v2';
+    const STORAGE_KEY_CACHE = 'fiches_eleves_cache_v2';
+    const STORAGE_KEY_NOTES = 'fiches_eleves_notes_v2';
+    const STORAGE_KEY_FICHE_CHOICES = 'fiches_eleves_fiche_choices_v2';
+    const STORAGE_KEY_LEVEL_OVERRIDES = 'fiches_eleves_level_overrides_v2';
+    const STORAGE_KEY_SCHOOL_NAMES = 'fiches_eleves_school_names_v2';
+    const DRIVE_STATE_FILENAME = 'Configuration_Fiches_Eleves.json';
+    const COMMENTS_FILENAME = 'Commentaires_Suivi.txt';
+
+    const DEFAULT_GEMINI_PROMPT = `@Google Drive {DOSSIER}
+
+Agis en tant qu'enseignant(e) spécialisé(e). À partir de l'ensemble des documents présents dans le dossier de l'élève {ELEVE} ({ECOLE}), rédige une fiche de synthèse claire et structurée :
+1. Parcours & contexte scolaire (dispositifs PPS/PAP/PPRE, AESH, suivis extérieurs)
+2. Points forts & leviers de réussite
+3. Difficultés identifiées & points de vigilance
+4. Aménagements pédagogiques recommandés en classe
+5. Chronologie des bilans et réunions (avec dates et sources entre parenthèses).`;
+
+    let settings = {
+      clientId: '',
+      folderId: '',
+      geminiPrompt: DEFAULT_GEMINI_PROMPT
+    };
+
+    let accessToken = null;
+    let tokenClient = null;
+    let driveStateFileId = null;
+
+    // État principal de l'application (restauré depuis la mémoire locale au démarrage)
+    let schoolsData = [];
+    let studentsData = [];
+    let studentNotes = {};          // { studentId: "Texte des commentaires" }
+    let studentFicheChoices = {};   // { studentId: "driveFileIdChoisi" }
+    let studentLevelOverrides = {}; // { studentId: "CE2" }
+    let schoolCustomNames = {};     // { schoolId: "Nom personnalisé" }
+    let currentStudentId = null;
+    let selectedSchoolFilter = 'ALL';
+    let searchQuery = '';
+    let isSchoolSyncing = false;
+    let notesSaveTimer = null;
+
+    // Références aux éléments DOM
+    const el = {
+      modeBadge: document.getElementById('modeBadge'),
+      driveDot: document.getElementById('driveDot'),
+      modeBadgeText: document.getElementById('modeBadgeText'),
+      btnInstallApp: document.getElementById('btnInstallApp'),
+      btnConnectDrive: document.getElementById('btnConnectDrive'),
+      btnConnectDriveLabel: document.getElementById('btnConnectDriveLabel'),
+      btnOpenSettings: document.getElementById('btnOpenSettings'),
+      btnPrint: document.getElementById('btnPrint'),
+      btnSyncSchool: document.getElementById('btnSyncSchool'),
+      schoolSyncProgressBox: document.getElementById('schoolSyncProgressBox'),
+      schoolSyncProgressText: document.getElementById('schoolSyncProgressText'),
+      schoolSyncProgressCount: document.getElementById('schoolSyncProgressCount'),
+      schoolSyncProgressBar: document.getElementById('schoolSyncProgressBar'),
+      schoolSelect: document.getElementById('schoolSelect'),
+      btnEditSchoolName: document.getElementById('btnEditSchoolName'),
+      renameSchoolBox: document.getElementById('renameSchoolBox'),
+      renameSchoolOriginal: document.getElementById('renameSchoolOriginal'),
+      inputSchoolCustomName: document.getElementById('inputSchoolCustomName'),
+      btnResetSchoolName: document.getElementById('btnResetSchoolName'),
+      btnCancelRenameSchool: document.getElementById('btnCancelRenameSchool'),
+      btnSaveSchoolName: document.getElementById('btnSaveSchoolName'),
+      searchInput: document.getElementById('searchInput'),
+      studentList: document.getElementById('studentList'),
+      studentCountLabel: document.getElementById('studentCountLabel'),
+      lastGlobalSyncLabel: document.getElementById('lastGlobalSyncLabel'),
+      emptyStateContainer: document.getElementById('emptyStateContainer'),
+      btnEmptyConnect: document.getElementById('btnEmptyConnect'),
+      btnEmptySettings: document.getElementById('btnEmptySettings'),
+      studentDetailContainer: document.getElementById('studentDetailContainer'),
+      schoolBadge: document.getElementById('schoolBadge'),
+      studentLevelSelect: document.getElementById('studentLevelSelect'),
+      studentBirthYearBadge: document.getElementById('studentBirthYearBadge'),
+      studentNameTitle: document.getElementById('studentNameTitle'),
+      studentFolderLabel: document.getElementById('studentFolderLabel'),
+      studentDocsCountLabel: document.getElementById('studentDocsCountLabel'),
+      btnOpenFolderDrive: document.getElementById('btnOpenFolderDrive'),
+      btnRefreshStudentDocs: document.getElementById('btnRefreshStudentDocs'),
+      btnOpenGeminiPrompt: document.getElementById('btnOpenGeminiPrompt'),
+      ficheSourceSubtitle: document.getElementById('ficheSourceSubtitle'),
+      btnToggleFicheSelector: document.getElementById('btnToggleFicheSelector'),
+      btnOpenFicheDocDirect: document.getElementById('btnOpenFicheDocDirect'),
+      ficheReferenceSelectorBox: document.getElementById('ficheReferenceSelectorBox'),
+      ficheSelectorPromptTitle: document.getElementById('ficheSelectorPromptTitle'),
+      btnCancelFicheSelector: document.getElementById('btnCancelFicheSelector'),
+      selectFicheReferenceDoc: document.getElementById('selectFicheReferenceDoc'),
+      btnConfirmFicheReference: document.getElementById('btnConfirmFicheReference'),
+      ficheContentCard: document.getElementById('ficheContentCard'),
+      notesSavedStatus: document.getElementById('notesSavedStatus'),
+      btnSaveCommentsDrive: document.getElementById('btnSaveCommentsDrive'),
+      studentNotesTextarea: document.getElementById('studentNotesTextarea'),
+      docsListBadge: document.getElementById('docsListBadge'),
+      documentsListContainer: document.getElementById('documentsListContainer'),
+      settingsModal: document.getElementById('settingsModal'),
+      btnCloseSettings: document.getElementById('btnCloseSettings'),
+      inputClientId: document.getElementById('inputClientId'),
+      inputFolderId: document.getElementById('inputFolderId'),
+      inputGeminiPrompt: document.getElementById('inputGeminiPrompt'),
+      btnResetPrompt: document.getElementById('btnResetPrompt'),
+      driveConfigFileInfo: document.getElementById('driveConfigFileInfo'),
+      btnOpenDriveConfigFile: document.getElementById('btnOpenDriveConfigFile'),
+      btnExportConfig: document.getElementById('btnExportConfig'),
+      btnImportConfig: document.getElementById('btnImportConfig'),
+      importConfigBox: document.getElementById('importConfigBox'),
+      inputImportConfigJson: document.getElementById('inputImportConfigJson'),
+      btnApplyImportedConfig: document.getElementById('btnApplyImportedConfig'),
+      btnSaveSettingsOnly: document.getElementById('btnSaveSettingsOnly'),
+      btnSaveAndConnect: document.getElementById('btnSaveAndConnect'),
+      toast: document.getElementById('toast'),
+      toastIcon: document.getElementById('toastIcon'),
+      toastMessage: document.getElementById('toastMessage')
+    };
+
+    function showToast(message, type = 'success') {
+      el.toastMessage.textContent = message;
+      el.toastIcon.className = 'w-2.5 h-2.5 rounded-full shrink-0 ' +
+        (type === 'error' ? 'bg-red-400' : type === 'info' ? 'bg-blue-400' : 'bg-emerald-400');
+      el.toast.classList.remove('hidden');
+      clearTimeout(showToast._timer);
+      showToast._timer = setTimeout(() => el.toast.classList.add('hidden'), 4200);
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text || '';
+      return div.innerHTML;
+    }
+
+    function getSchoolDisplayName(school) {
+      if (!school) return 'École';
+      const custom = schoolCustomNames[school.id];
+      return (custom && custom.trim()) ? custom.trim() : school.name;
+    }
+
+    function syncSchoolDisplayNamesInStudents() {
+      const nameBySchoolId = {};
+      schoolsData.forEach((sc) => {
+        sc.displayName = getSchoolDisplayName(sc);
+        nameBySchoolId[sc.id] = sc.displayName;
+      });
+      studentsData.forEach((st) => {
+        if (st.schoolId && nameBySchoolId[st.schoolId]) {
+          st.schoolName = nameBySchoolId[st.schoolId];
+        }
+      });
+    }
+
+    // =========================================================================
+    // PERSISTANCE EN MÉMOIRE LOCALE (LOCALSTORAGE) & SAUVEGARDE GOOGLE DRIVE
+    // =========================================================================
+    function loadAllFromLocalStorage() {
+      try {
+        const rawSettings = localStorage.getItem(STORAGE_KEY_SETTINGS);
+        if (rawSettings) {
+          const parsed = JSON.parse(rawSettings);
+          settings.clientId = parsed.clientId || '';
+          settings.folderId = parsed.folderId || '';
+          settings.geminiPrompt = parsed.geminiPrompt || DEFAULT_GEMINI_PROMPT;
+        }
+      } catch (e) {
+        console.warn('Lecture paramètres impossible :', e);
+      }
+
+      try {
+        const rawNotes = localStorage.getItem(STORAGE_KEY_NOTES);
+        if (rawNotes) studentNotes = JSON.parse(rawNotes) || {};
+      } catch (e) {
+        studentNotes = {};
+      }
+
+      try {
+        const rawChoices = localStorage.getItem(STORAGE_KEY_FICHE_CHOICES);
+        if (rawChoices) studentFicheChoices = JSON.parse(rawChoices) || {};
+      } catch (e) {
+        studentFicheChoices = {};
+      }
+
+      try {
+        const rawLevels = localStorage.getItem(STORAGE_KEY_LEVEL_OVERRIDES);
+        if (rawLevels) studentLevelOverrides = JSON.parse(rawLevels) || {};
+      } catch (e) {
+        studentLevelOverrides = {};
+      }
+
+      try {
+        const rawSchoolNames = localStorage.getItem(STORAGE_KEY_SCHOOL_NAMES);
+        if (rawSchoolNames) schoolCustomNames = JSON.parse(rawSchoolNames) || {};
+      } catch (e) {
+        schoolCustomNames = {};
+      }
+
+      try {
+        const rawCache = localStorage.getItem(STORAGE_KEY_CACHE);
+        if (rawCache) {
+          const cache = JSON.parse(rawCache);
+          schoolsData = Array.isArray(cache.schoolsData) ? cache.schoolsData : [];
+          studentsData = Array.isArray(cache.studentsData) ? cache.studentsData : [];
+          studentsData.forEach((st) => {
+            if (studentLevelOverrides[st.id]) {
+              st.level = studentLevelOverrides[st.id];
+            }
+          });
+          syncSchoolDisplayNamesInStudents();
+          currentStudentId = cache.currentStudentId || (studentsData[0] ? studentsData[0].id : null);
+          selectedSchoolFilter = cache.selectedSchoolFilter || 'ALL';
+          if (cache.lastSyncText) {
+            el.lastGlobalSyncLabel.textContent = cache.lastSyncText;
+          }
+        }
+      } catch (e) {
+        console.warn('Lecture mémoire locale impossible :', e);
+      }
+    }
+
+    function saveSettingsToStorage() {
+      try {
+        localStorage.setItem(STORAGE_KEY_SETTINGS, JSON.stringify(settings));
+      } catch (e) {
+        console.warn('Sauvegarde paramètres impossible :', e);
+      }
+    }
+
+    function saveCacheToStorage(customSyncText = null) {
+      try {
+        const syncText = customSyncText || el.lastGlobalSyncLabel.textContent || 'Mémoire locale';
+        el.lastGlobalSyncLabel.textContent = syncText;
+        localStorage.setItem(STORAGE_KEY_CACHE, JSON.stringify({
+          schoolsData,
+          studentsData,
+          currentStudentId,
+          selectedSchoolFilter,
+          lastSyncText: syncText
+        }));
+      } catch (e) {
+        console.warn('Sauvegarde mémoire locale impossible :', e);
+      }
+    }
+
+    function saveStudentNotesToStorage() {
+      try {
+        localStorage.setItem(STORAGE_KEY_NOTES, JSON.stringify(studentNotes));
+      } catch (e) {
+        console.warn('Sauvegarde notes locale impossible :', e);
+      }
+    }
+
+    function saveFicheChoicesToStorage() {
+      try {
+        localStorage.setItem(STORAGE_KEY_FICHE_CHOICES, JSON.stringify(studentFicheChoices));
+      } catch (e) {
+        console.warn('Sauvegarde choix fiches impossible :', e);
+      }
+    }
+
+    function saveLevelOverridesToStorage() {
+      try {
+        localStorage.setItem(STORAGE_KEY_LEVEL_OVERRIDES, JSON.stringify(studentLevelOverrides));
+      } catch (e) {
+        console.warn('Sauvegarde classes impossible :', e);
+      }
+    }
+
+    function saveSchoolNamesToStorage() {
+      try {
+        localStorage.setItem(STORAGE_KEY_SCHOOL_NAMES, JSON.stringify(schoolCustomNames));
+      } catch (e) {
+        console.warn('Sauvegarde noms écoles impossible :', e);
+      }
+    }
+
+    // Sauvegarde globale centralisée sur Google Drive (Configuration_Fiches_Eleves.json)
+    let driveGlobalSaveTimer = null;
+    function scheduleGlobalStateSaveToDrive() {
+      if (!accessToken || !settings.folderId) return;
+      clearTimeout(driveGlobalSaveTimer);
+      driveGlobalSaveTimer = setTimeout(() => {
+        saveGlobalStateToDrive();
+      }, 900);
+    }
+
+    function updateDriveConfigFileLinkUI(fileId, locationLabel = '') {
+      if (fileId && el.btnOpenDriveConfigFile) {
+        el.btnOpenDriveConfigFile.href = `https://drive.google.com/file/d/${encodeURIComponent(fileId)}/view`;
+        el.btnOpenDriveConfigFile.classList.remove('hidden');
+      }
+      if (locationLabel && el.driveConfigFileInfo) {
+        el.driveConfigFileInfo.innerHTML = `Fichier : <code>${DRIVE_STATE_FILENAME}</code> (${escapeHtml(locationLabel)})`;
+      }
+    }
+
+    async function saveGlobalStateToDrive() {
+      if (!accessToken || !settings.folderId) return { ok: false, error: 'Non connecté à Drive' };
+
+      const payloadObj = {
+        version: 'v2.9',
+        updatedAt: new Date().toISOString(),
+        rootFolderId: settings.folderId,
+        geminiPrompt: settings.geminiPrompt,
+        schoolCustomNames,
+        studentLevelOverrides,
+        studentFicheChoices,
+        studentNotes,
+        schoolsData,
+        studentsData
+      };
+      const fileContent = JSON.stringify(payloadObj, null, 2);
+
+      try {
+        if (!driveStateFileId) {
+          const qRoot = `'${settings.folderId}' in parents and name = '${DRIVE_STATE_FILENAME}' and trashed = false`;
+          const searchRoot = await driveApiGet(`https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(qRoot)}&fields=files(id,parents)&supportsAllDrives=true&includeItemsFromAllDrives=true`);
+          if (searchRoot.files && searchRoot.files.length > 0) {
+            driveStateFileId = searchRoot.files[0].id;
+            updateDriveConfigFileLinkUI(driveStateFileId, 'dans le dossier racine');
+          } else {
+            const qMyDrive = `'root' in parents and name = '${DRIVE_STATE_FILENAME}' and trashed = false`;
+            const searchMyDrive = await driveApiGet(`https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(qMyDrive)}&fields=files(id,parents)`);
+            if (searchMyDrive.files && searchMyDrive.files.length > 0) {
+              driveStateFileId = searchMyDrive.files[0].id;
+              updateDriveConfigFileLinkUI(driveStateFileId, 'à la racine de Mon Drive');
+            }
+          }
+        }
+
+        if (driveStateFileId) {
+          const patchRes = await fetch(`https://www.googleapis.com/upload/drive/v3/files/${encodeURIComponent(driveStateFileId)}?uploadType=media&supportsAllDrives=true`, {
+            method: 'PATCH',
+            headers: {
+              'Authorization': `Bearer ${accessToken}`,
+              'Content-Type': 'application/json; charset=UTF-8'
+            },
+            body: fileContent
+          });
+          if (!patchRes.ok) {
+            const errTxt = await patchRes.text();
+            throw new Error(`HTTP ${patchRes.status} : ${errTxt.slice(0, 120)}`);
+          }
+          return { ok: true, fileId: driveStateFileId };
+        } else {
+          let createRes = await createJsonFileInDriveFolder(settings.folderId, fileContent);
+          let locationText = 'dans le dossier racine';
+
+          if (!createRes.ok) {
+            createRes = await createJsonFileInDriveFolder('root', fileContent);
+            locationText = 'à la racine de Mon Drive';
+          }
+
+          if (!createRes.ok) {
+            throw new Error(createRes.error || 'Impossible de créer le fichier sur Drive');
+          }
+
+          driveStateFileId = createRes.id;
+          updateDriveConfigFileLinkUI(driveStateFileId, locationText);
+          return { ok: true, fileId: driveStateFileId, location: locationText };
+        }
+      } catch (err) {
+        console.warn('Sauvegarde configuration Drive impossible :', err);
+        return { ok: false, error: err.message || 'Erreur inconnue' };
+      }
+    }
+
+    async function createJsonFileInDriveFolder(parentFolderId, fileContent) {
+      const boundary = '-------314159265358979323846';
+      const metadata = {
+        name: DRIVE_STATE_FILENAME,
+        mimeType: 'application/json',
+        parents: [parentFolderId]
+      };
+      const multipartBody =
+        `--${boundary}\r\n` +
+        `Content-Type: application/json; charset=UTF-8\r\n\r\n` +
+        `${JSON.stringify(metadata)}\r\n` +
+        `--${boundary}\r\n` +
+        `Content-Type: application/json; charset=UTF-8\r\n\r\n` +
+        `${fileContent}\r\n` +
+        `--${boundary}--`;
+
+      const res = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id&supportsAllDrives=true', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': `multipart/related; boundary="${boundary}"`
+        },
+        body: multipartBody
+      });
+
+      if (!res.ok) {
+        const errTxt = await res.text();
+        return { ok: false, error: `HTTP ${res.status} : ${errTxt.slice(0, 120)}` };
+      }
+      const data = await res.json();
+      return { ok: true, id: data.id };
+    }
+
+    async function loadGlobalStateFromDrive() {
+      if (!accessToken || !settings.folderId) return false;
+      try {
+        let foundFile = null;
+        let locationText = 'dans le dossier racine';
+
+        const qRoot = `'${settings.folderId}' in parents and name = '${DRIVE_STATE_FILENAME}' and trashed = false`;
+        const searchRoot = await driveApiGet(`https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(qRoot)}&fields=files(id,modifiedTime)&supportsAllDrives=true&includeItemsFromAllDrives=true`);
+        if (searchRoot.files && searchRoot.files.length > 0) {
+          foundFile = searchRoot.files[0];
+        } else {
+          const qMyDrive = `'root' in parents and name = '${DRIVE_STATE_FILENAME}' and trashed = false`;
+          const searchMyDrive = await driveApiGet(`https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(qMyDrive)}&fields=files(id,modifiedTime)`);
+          if (searchMyDrive.files && searchMyDrive.files.length > 0) {
+            foundFile = searchMyDrive.files[0];
+            locationText = 'à la racine de Mon Drive';
+          }
+        }
+
+        if (!foundFile) return false;
+
+        driveStateFileId = foundFile.id;
+        updateDriveConfigFileLinkUI(driveStateFileId, locationText);
+
+        const res = await fetch(`https://www.googleapis.com/drive/v3/files/${encodeURIComponent(driveStateFileId)}?alt=media&supportsAllDrives=true`, {
+          headers: { 'Authorization': `Bearer ${accessToken}` }
+        });
+        if (!res.ok) return false;
+
+        const remoteState = await res.json();
+        if (!remoteState || typeof remoteState !== 'object') return false;
+
+        if (remoteState.geminiPrompt) {
+          settings.geminiPrompt = remoteState.geminiPrompt;
+          saveSettingsToStorage();
+        }
+        if (remoteState.schoolCustomNames && typeof remoteState.schoolCustomNames === 'object') {
+          schoolCustomNames = { ...remoteState.schoolCustomNames, ...schoolCustomNames };
+          saveSchoolNamesToStorage();
+        }
+        if (remoteState.studentLevelOverrides && typeof remoteState.studentLevelOverrides === 'object') {
+          studentLevelOverrides = { ...remoteState.studentLevelOverrides, ...studentLevelOverrides };
+          saveLevelOverridesToStorage();
+        }
+        if (remoteState.studentFicheChoices && typeof remoteState.studentFicheChoices === 'object') {
+          studentFicheChoices = { ...remoteState.studentFicheChoices, ...studentFicheChoices };
+          saveFicheChoicesToStorage();
+        }
+        if (remoteState.studentNotes && typeof remoteState.studentNotes === 'object') {
+          studentNotes = { ...remoteState.studentNotes, ...studentNotes };
+          saveStudentNotesToStorage();
+        }
+        if (Array.isArray(remoteState.schoolsData) && remoteState.schoolsData.length > 0 && schoolsData.length === 0) {
+          schoolsData = remoteState.schoolsData;
+        }
+        if (Array.isArray(remoteState.studentsData) && remoteState.studentsData.length > 0 && studentsData.length === 0) {
+          studentsData = remoteState.studentsData;
+          studentsData.forEach((st) => {
+            if (studentLevelOverrides[st.id]) {
+              st.level = studentLevelOverrides[st.id];
+            }
+          });
+        }
+        syncSchoolDisplayNamesInStudents();
+        saveCacheToStorage('Restauré depuis Drive');
+        return true;
+      } catch (err) {
+        console.warn('Lecture configuration Drive impossible :', err);
+        return false;
+      }
+    }
+
+    // =========================================================================
+    // UTILITAIRES DE PARSING & CLASSEMENT PAR ÉCOLE / ÉLÈVE
+    // =========================================================================
+    function parseStudentFolderName(folderName) {
+      const match = folderName.match(/^(\d{4})[\.\-_\s]+(.+)$/);
+      if (match) {
+        const birthYear = parseInt(match[1], 10);
+        const cleanName = match[2].trim();
+        const ageRef = 2026 - birthYear;
+        const levelMap = {
+          3: 'PS', 4: 'MS', 5: 'GS',
+          6: 'CP', 7: 'CE1', 8: 'CE2', 9: 'CM1', 10: 'CM2',
+          11: '6ème', 12: '5ème', 13: '4ème', 14: '3ème'
+        };
+        return {
+          name: cleanName,
+          birthYear,
+          level: levelMap[ageRef] || 'Suivi'
+        };
+      }
+      return {
+        name: folderName.trim(),
+        birthYear: null,
+        level: 'Suivi'
+      };
+    }
+
+    function isStudentFolderPattern(folderName) {
+      return /^\d{4}[\.\-_\s]+.+/.test(folderName.trim());
+    }
+
+    function formatDateFr(isoString) {
+      if (!isoString) return '';
+      const d = new Date(isoString);
+      if (isNaN(d.getTime())) return isoString;
+      return d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    }
+
+    function getMimeBadgeInfo(mimeType, fileName) {
+      const lower = (fileName || '').toLowerCase();
+      if (mimeType === 'application/vnd.google-apps.document') {
+        return { label: 'Google Docs', bg: 'bg-blue-50 text-blue-700 border-blue-200' };
+      }
+      if (mimeType === 'application/vnd.google-apps.spreadsheet') {
+        return { label: 'Google Sheets', bg: 'bg-emerald-50 text-emerald-700 border-emerald-200' };
+      }
+      if (mimeType === 'application/pdf' || lower.endsWith('.pdf')) {
+        return { label: 'PDF', bg: 'bg-rose-50 text-rose-700 border-rose-200' };
+      }
+      if (lower.endsWith('.docx') || lower.endsWith('.doc') || (mimeType && mimeType.includes('wordprocessingml'))) {
+        return { label: 'Word', bg: 'bg-indigo-50 text-indigo-700 border-indigo-200' };
+      }
+      if (mimeType && mimeType.startsWith('image/')) {
+        return { label: 'Image', bg: 'bg-amber-50 text-amber-700 border-amber-200' };
+      }
+      return { label: 'Document', bg: 'bg-slate-100 text-slate-700 border-slate-200' };
+    }
+
+    function isFicheDocument(file) {
+      if (!file || !file.name) return false;
+      if (file.name === COMMENTS_FILENAME || file.name === DRIVE_STATE_FILENAME) return false;
+      return /\bfiche\b/i.test(file.name) || /^fiche[\.\-_\s]/i.test(file.name.trim());
+    }
+
+    function getActiveFicheDocument(student) {
+      if (!student || !Array.isArray(student.documents) || student.documents.length === 0) {
+        return { doc: null, isManual: false };
+      }
+      const chosenId = studentFicheChoices[student.id];
+      if (chosenId) {
+        const manualDoc = student.documents.find((d) => d.id === chosenId);
+        if (manualDoc) {
+          return { doc: manualDoc, isManual: true };
+        }
+      }
+      const autoDoc = student.documents.find(isFicheDocument) || null;
+      return { doc: autoDoc, isManual: false };
+    }
+
+    // Met en forme le texte brut du document "Fiche" en sections propres et lisibles
+    function formatFicheTextToBlocks(rawText) {
+      if (!rawText || !rawText.trim()) return [];
+      const rawLines = rawText
+        .split(/\r?\n/)
+        .map((l) => l.trim())
+        .filter((l) => l.length > 0);
+
+      // Filtrer les en-têtes de colonnes vides issus d'un tableau modèle non rempli
+      const emptyTableHeaderTokens = new Set([
+        'années',
+        'année',
+        'etablissement et classe',
+        'établissement et classe',
+        'etablissement',
+        'établissement',
+        'classe',
+        'observations',
+        'remarques',
+        'suivi',
+        'dispositif',
+        'dispositifs',
+        'bilan',
+        'bilans',
+        'date',
+        'dates'
+      ]);
+
+      const lines = rawLines.filter((line, idx) => {
+        const cleanCheck = line.replace(/^[-•*:\s]+|[:\s]+$/g, '').toLowerCase();
+        if (!emptyTableHeaderTokens.has(cleanCheck)) return true;
+        const nextLine = rawLines[idx + 1] ? rawLines[idx + 1].trim() : '';
+        const nextClean = nextLine.replace(/^[-•*:\s]+|[:\s]+$/g, '').toLowerCase();
+        if (!nextLine || emptyTableHeaderTokens.has(nextClean)) {
+          return false;
+        }
+        return true;
+      });
+
+      const blocks = [];
+      let currentBlock = { heading: 'Informations générales', items: [] };
+
+      lines.forEach((line) => {
+        const isHeading =
+          (line.endsWith(':') && line.length <= 65 && !line.includes('http')) ||
+          (line === line.toUpperCase() && line.length >= 4 && line.length <= 65 && /[A-ZÀ-Ÿ]/.test(line));
+
+        if (isHeading) {
+          if (currentBlock.items.length > 0) {
+            blocks.push(currentBlock);
+          }
+          currentBlock = {
+            heading: line.replace(/:$/, '').trim(),
+            items: []
+          };
+        } else {
+          currentBlock.items.push(line);
+        }
+      });
+
+      if (currentBlock.items.length > 0) {
+        blocks.push(currentBlock);
+      }
+      return blocks;
+    }
+
+    // =========================================================================
+    // RENDU DE L'INTERFACE
+    // =========================================================================
+    function populateSchoolSelect() {
+      const prevValue = selectedSchoolFilter;
+      el.schoolSelect.innerHTML = `<option value="ALL">Toutes les écoles (${schoolsData.length})</option>`;
+      schoolsData.forEach((sc) => {
+        const count = studentsData.filter((st) => st.schoolId === sc.id).length;
+        const opt = document.createElement('option');
+        opt.value = sc.id;
+        opt.textContent = `${getSchoolDisplayName(sc)} (${count})`;
+        el.schoolSelect.appendChild(opt);
+      });
+      if (prevValue === 'ALL' || schoolsData.some((s) => s.id === prevValue)) {
+        el.schoolSelect.value = prevValue;
+      } else {
+        selectedSchoolFilter = 'ALL';
+        el.schoolSelect.value = 'ALL';
+      }
+      updateEditSchoolButtonState();
+    }
+
+    function updateEditSchoolButtonState() {
+      const targetSchool = getTargetSchoolForRename();
+      if (targetSchool) {
+        el.btnEditSchoolName.classList.remove('opacity-40', 'cursor-not-allowed');
+        el.btnEditSchoolName.disabled = false;
+      } else {
+        el.btnEditSchoolName.classList.add('opacity-40', 'cursor-not-allowed');
+        el.btnEditSchoolName.disabled = true;
+        el.renameSchoolBox.classList.add('hidden');
+      }
+    }
+
+    function getTargetSchoolForRename() {
+      if (selectedSchoolFilter !== 'ALL') {
+        return schoolsData.find((s) => s.id === selectedSchoolFilter) || null;
+      }
+      if (schoolsData.length === 1) {
+        return schoolsData[0];
+      }
+      return null;
+    }
+
+    function getFilteredStudents() {
+      return studentsData
+        .filter((st) => {
+          const matchesSchool = selectedSchoolFilter === 'ALL' || st.schoolId === selectedSchoolFilter;
+          const q = searchQuery.trim().toLowerCase();
+          const matchesSearch =
+            !q ||
+            st.name.toLowerCase().includes(q) ||
+            st.schoolName.toLowerCase().includes(q) ||
+            (st.level && st.level.toLowerCase().includes(q));
+          return matchesSchool && matchesSearch;
+        })
+        .sort((a, b) => a.name.localeCompare(b.name, 'fr'));
+    }
+
+    function renderStudentList() {
+      const filtered = getFilteredStudents();
+      el.studentList.innerHTML = '';
+
+      if (studentsData.length === 0) {
+        el.emptyStateContainer.classList.remove('hidden');
+        el.studentDetailContainer.classList.add('hidden');
+        el.studentCountLabel.textContent = '0 élève';
+        return;
+      }
+
+      el.emptyStateContainer.classList.add('hidden');
+      el.studentDetailContainer.classList.remove('hidden');
+
+      if (filtered.length === 0) {
+        el.studentList.innerHTML = `
+          <div class="p-6 text-center text-sm text-slate-500">
+            Aucun élève ne correspond à cette recherche.
+          </div>
+        `;
+      } else {
+        filtered.forEach((student) => {
+          const isSelected = student.id === currentStudentId;
+          const docCount = Array.isArray(student.documents) ? student.documents.length : 0;
+          const activeFiche = getActiveFicheDocument(student);
+          const hasFiche = Boolean(activeFiche.doc);
+
+          const btn = document.createElement('button');
+          btn.className = `w-full text-left px-4 py-3.5 transition flex items-center justify-between gap-3 ${
+            isSelected ? 'bg-blue-50/90 border-l-4 border-blue-600' : 'hover:bg-slate-50 border-l-4 border-transparent'
+          }`;
+          btn.onclick = () => selectStudent(student.id);
+
+          btn.innerHTML = `
+            <div class="min-w-0 flex-1">
+              <div class="flex items-center gap-2">
+                <p class="font-bold text-[15px] text-slate-900 truncate">${escapeHtml(student.name)}</p>
+                ${hasFiche ? '<span class="w-2 h-2 rounded-full bg-blue-600 shrink-0" title="Document Fiche disponible"></span>' : ''}
+              </div>
+              <div class="flex items-center gap-1.5 mt-1 text-xs text-slate-600">
+                <span class="font-semibold text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded">${escapeHtml(student.level || 'Suivi')}</span>
+                ${selectedSchoolFilter === 'ALL' ? `<span class="truncate text-slate-500">• ${escapeHtml(student.schoolName)}</span>` : ''}
+              </div>
+            </div>
+            <div class="shrink-0 text-right">
+              <span class="inline-flex items-center px-2 py-1 rounded-md text-xs font-semibold ${
+                docCount > 0 ? 'bg-slate-100 text-slate-700' : 'bg-amber-50 text-amber-700'
+              }">
+                ${docCount} doc${docCount > 1 ? 's' : ''}
+              </span>
+            </div>
+          `;
+          el.studentList.appendChild(btn);
+        });
+      }
+
+      el.studentCountLabel.textContent = `${filtered.length} élève${filtered.length > 1 ? 's' : ''}`;
+    }
+
+    function renderFicheBlock(student) {
+      const docs = Array.isArray(student.documents) ? student.documents : [];
+      const { doc: ficheDoc, isManual } = getActiveFicheDocument(student);
+
+      el.selectFicheReferenceDoc.innerHTML = '<option value="">-- Sélectionner un document dans le dossier --</option>';
+      docs.forEach((doc) => {
+        const opt = document.createElement('option');
+        opt.value = doc.id;
+        opt.textContent = `${doc.name}${doc.modifiedTime ? ' (' + formatDateFr(doc.modifiedTime) + ')' : ''}`;
+        if (ficheDoc && doc.id === ficheDoc.id) {
+          opt.selected = true;
+        }
+        el.selectFicheReferenceDoc.appendChild(opt);
+      });
+
+      if (!ficheDoc) {
+        el.ficheSourceSubtitle.textContent = 'Aucun document « Fiche » détecté automatiquement dans ce dossier';
+        el.btnOpenFicheDocDirect.classList.add('hidden');
+        el.btnToggleFicheSelector.classList.add('hidden');
+
+        if (docs.length > 0) {
+          el.ficheSelectorPromptTitle.textContent = 'Aucun fichier nommé « Fiche » trouvé — Choisissez le document de référence :';
+          el.btnCancelFicheSelector.classList.add('hidden');
+          el.ficheReferenceSelectorBox.classList.remove('hidden');
+          el.ficheContentCard.innerHTML = `
+            <p class="text-sm text-slate-600">
+              Sélectionnez ci-dessus le document principal de <strong>${escapeHtml(student.name)}</strong> parmi les <strong>${docs.length}</strong> fichier(s) du dossier pour afficher son contenu ici.
+            </p>
+          `;
+        } else {
+          el.ficheReferenceSelectorBox.classList.add('hidden');
+          el.ficheContentCard.innerHTML = `
+            <p class="text-sm text-slate-600">
+              Aucun document n'est encore chargé pour cet élève. Cliquez sur <strong>« Synchro Élève »</strong> ou <strong>« Synchro École »</strong>.
+            </p>
+          `;
+        }
+        return;
+      }
+
+      el.ficheReferenceSelectorBox.classList.add('hidden');
+      el.btnToggleFicheSelector.classList.remove('hidden');
+      el.ficheSourceSubtitle.textContent = `Source : ${ficheDoc.name}${isManual ? ' (sélectionné manuellement)' : ''}`;
+      el.btnOpenFicheDocDirect.href = ficheDoc.webViewLink || `https://drive.google.com/file/d/${encodeURIComponent(ficheDoc.id)}/view`;
+      el.btnOpenFicheDocDirect.classList.remove('hidden');
+
+      const rawText = student.ficheText || '';
+      if (!rawText.trim()) {
+        el.ficheContentCard.innerHTML = `
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <p class="text-sm text-slate-600">
+              Le document <strong>${escapeHtml(ficheDoc.name)}</strong> est présent sur Drive, mais son contenu texte n'a pas encore été lu (ou il s'agit d'un PDF scanné).
+            </p>
+            <a href="${escapeHtml(el.btnOpenFicheDocDirect.href)}" target="_blank" rel="noopener" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-white bg-blue-600 rounded-lg hover:bg-blue-700 shrink-0">
+              Consulter sur Drive
+            </a>
+          </div>
+        `;
+        return;
+      }
+
+      const blocks = formatFicheTextToBlocks(rawText);
+      if (blocks.length === 0) {
+        el.ficheContentCard.innerHTML = `<div class="text-sm text-slate-800 whitespace-pre-line leading-relaxed">${escapeHtml(rawText)}</div>`;
+        return;
+      }
+
+      el.ficheContentCard.innerHTML = '';
+      const grid = document.createElement('div');
+      grid.className = 'grid grid-cols-1 md:grid-cols-2 gap-4';
+
+      blocks.forEach((block, idx) => {
+        const card = document.createElement('div');
+        const isWide = blocks.length === 1 || (idx === 0 && block.items.length > 4);
+        card.className = `bg-white border border-slate-200 rounded-xl p-4 shadow-sm ${isWide ? 'md:col-span-2' : ''}`;
+
+        const titleEl = document.createElement('h4');
+        titleEl.className = 'text-xs font-extrabold uppercase tracking-wider text-blue-800 border-b border-slate-100 pb-2 mb-2.5';
+        titleEl.textContent = block.heading;
+        card.appendChild(titleEl);
+
+        const listEl = document.createElement('div');
+        listEl.className = 'space-y-1.5 text-sm text-slate-800 leading-relaxed';
+
+        block.items.forEach((itemLine) => {
+          const cleanLine = itemLine.replace(/^[-•*]\s*/, '');
+          const row = document.createElement('div');
+
+          // Nettoyage du libellé DN (Date de naissance) : si jour/mois vides (ex. "/ /2022"), on garde uniquement l'année
+          const normalizedCleanLine = cleanLine
+            .replace(/\bDN\s*:\s*(?:[_\s]*\/[_\s]*\/[_\s]*)?(\d{4})\b/gi, 'Date de naissance : $1')
+            .replace(/\bDN\s*:\s*(\d{1,2}\/\d{1,2}\/\d{2,4})\b/gi, 'Date de naissance : $1');
+          const effectiveColonIdx = normalizedCleanLine.indexOf(':');
+
+          if (effectiveColonIdx > 0 && effectiveColonIdx <= 42) {
+            const labelPart = normalizedCleanLine.slice(0, effectiveColonIdx).trim();
+            const valuePart = normalizedCleanLine.slice(effectiveColonIdx + 1).trim();
+            row.className = 'flex flex-col sm:flex-row sm:items-baseline gap-0.5 sm:gap-2 py-0.5';
+            row.innerHTML = `
+              <span class="font-bold text-slate-800 shrink-0">${escapeHtml(labelPart)} :</span>
+              <span class="text-slate-900">${escapeHtml(valuePart)}</span>
+            `;
+          } else {
+            row.className = 'flex items-start gap-2 py-0.5';
+            row.innerHTML = `
+              <span class="text-blue-600 font-bold mt-0.5">•</span>
+              <span class="text-slate-900">${escapeHtml(normalizedCleanLine)}</span>
+            `;
+          }
+          listEl.appendChild(row);
+        });
+
+        card.appendChild(listEl);
+        grid.appendChild(card);
+      });
+
+      el.ficheContentCard.appendChild(grid);
+    }
+
+    function renderStudentDetail(student) {
+      if (!student) return;
+
+      el.schoolBadge.textContent = student.schoolName;
+      const currentLevel = studentLevelOverrides[student.id] || student.level || 'Suivi';
+      student.level = currentLevel;
+      if (!Array.from(el.studentLevelSelect.options).some((opt) => opt.value === currentLevel)) {
+        const customOpt = document.createElement('option');
+        customOpt.value = currentLevel;
+        customOpt.textContent = currentLevel;
+        el.studentLevelSelect.appendChild(customOpt);
+      }
+      el.studentLevelSelect.value = currentLevel;
+
+      if (student.birthYear) {
+        el.studentBirthYearBadge.textContent = `Né(e) en ${student.birthYear}`;
+        el.studentBirthYearBadge.classList.remove('hidden');
+      } else {
+        el.studentBirthYearBadge.classList.add('hidden');
+      }
+
+      el.studentNameTitle.textContent = student.name;
+      el.studentFolderLabel.textContent = student.folderName || student.name;
+      el.btnOpenFolderDrive.href = `https://drive.google.com/drive/folders/${encodeURIComponent(student.id)}`;
+
+      const docs = Array.isArray(student.documents) ? student.documents : [];
+      el.studentDocsCountLabel.textContent = `${docs.length} document${docs.length > 1 ? 's' : ''}`;
+      el.docsListBadge.textContent = `${docs.length} document${docs.length > 1 ? 's' : ''}`;
+
+      // Pavé 1 : Document Fiche
+      renderFicheBlock(student);
+
+      // Pavé 2 : Commentaires & suivi personnel
+      el.studentNotesTextarea.value = studentNotes[student.id] || '';
+      el.notesSavedStatus.textContent = studentNotes[student.id] ? 'Enregistré' : '';
+
+      // Pavé 3 : Liste complète des documents avec bouton direct Google Drive
+      el.documentsListContainer.innerHTML = '';
+      if (docs.length === 0) {
+        el.documentsListContainer.innerHTML = `
+          <div class="p-6 text-center text-sm text-slate-500">
+            Aucun document trouvé dans ce dossier (ou cliquez sur <strong>« Synchro Élève »</strong>).
+          </div>
+        `;
+      } else {
+        docs.forEach((doc) => {
+          const badge = getMimeBadgeInfo(doc.mimeType, doc.name);
+          const driveUrl = doc.webViewLink || `https://drive.google.com/file/d/${encodeURIComponent(doc.id)}/view`;
+          const dateLabel = doc.modifiedTime ? `Modifié le ${formatDateFr(doc.modifiedTime)}` : '';
+
+          const row = document.createElement('div');
+          row.className = 'p-3.5 sm:px-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-slate-50 transition';
+          row.innerHTML = `
+            <div class="min-w-0 flex-1">
+              <div class="flex items-center gap-2 flex-wrap">
+                <span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold border ${badge.bg}">
+                  ${escapeHtml(badge.label)}
+                </span>
+                <p class="font-semibold text-sm text-slate-900 truncate">${escapeHtml(doc.name)}</p>
+              </div>
+              ${dateLabel ? `<p class="text-xs text-slate-500 mt-1">${escapeHtml(dateLabel)}</p>` : ''}
+            </div>
+            <div class="shrink-0 flex items-center gap-2 no-print">
+              <a href="${escapeHtml(driveUrl)}" target="_blank" rel="noopener" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg transition">
+                <span>Ouvrir sur Drive</span>
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                </svg>
+              </a>
+            </div>
+          `;
+          el.documentsListContainer.appendChild(row);
+        });
+      }
+    }
+
+    function selectStudent(studentId) {
+      currentStudentId = studentId;
+      saveCacheToStorage();
+      renderStudentList();
+      const student = studentsData.find((s) => s.id === studentId);
+      if (!student) return;
+      renderStudentDetail(student);
+
+      if (accessToken && (!student.documents || !student.hasSyncedDocs)) {
+        loadDocumentsForStudent(student, true);
+      }
+    }
+
+    function updateConnectionBadge(connected) {
+      if (connected) {
+        el.modeBadge.className = 'inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200';
+        el.driveDot.className = 'w-2 h-2 rounded-full bg-emerald-500';
+        el.modeBadgeText.textContent = 'Google Drive connecté';
+        el.btnConnectDriveLabel.textContent = 'Drive connecté';
+      } else {
+        el.modeBadge.className = 'inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-700 border border-slate-200';
+        el.driveDot.className = 'w-2 h-2 rounded-full bg-slate-400';
+        el.modeBadgeText.textContent = studentsData.length > 0 ? 'Mémoire locale' : 'Non connecté';
+        el.btnConnectDriveLabel.textContent = 'Connecter Drive';
+      }
+    }
+
+    // =========================================================================
+    // INTÉGRATION GOOGLE DRIVE API V3 (LECTURE + COMMENTAIRES + FICHE)
+    // =========================================================================
+    async function driveApiGet(url) {
+      const res = await fetch(url, {
+        headers: { 'Authorization': `Bearer ${accessToken}` }
+      });
+      if (!res.ok) {
+        const errBody = await res.text();
+        throw new Error(`Erreur Google Drive (${res.status}) : ${errBody.slice(0, 140)}`);
+      }
+      return res.json();
+    }
+
+    async function listAllDriveItems(query, fields = 'files(id, name, mimeType, modifiedTime, webViewLink)') {
+      let allFiles = [];
+      let pageToken = null;
+      do {
+        const url = `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(query)}&fields=${encodeURIComponent(`nextPageToken, ${fields}`)}&pageSize=200&supportsAllDrives=true&includeItemsFromAllDrives=true${pageToken ? `&pageToken=${encodeURIComponent(pageToken)}` : ''}`;
+        const data = await driveApiGet(url);
+        if (data.files && data.files.length > 0) {
+          allFiles = allFiles.concat(data.files);
+        }
+        pageToken = data.nextPageToken || null;
+      } while (pageToken);
+      return allFiles;
+    }
+
+    async function extractTextFromDriveFile(file) {
+      try {
+        if (file.mimeType === 'application/vnd.google-apps.document') {
+          const res = await fetch(`https://www.googleapis.com/drive/v3/files/${encodeURIComponent(file.id)}/export?mimeType=text/plain&supportsAllDrives=true`, {
+            headers: { 'Authorization': `Bearer ${accessToken}` }
+          });
+          if (!res.ok) return '';
+          return await res.text();
+        }
+        if (file.mimeType === 'text/plain') {
+          const res = await fetch(`https://www.googleapis.com/drive/v3/files/${encodeURIComponent(file.id)}?alt=media&supportsAllDrives=true`, {
+            headers: { 'Authorization': `Bearer ${accessToken}` }
+          });
+          if (!res.ok) return '';
+          return await res.text();
+        }
+        if (
+          (file.name && file.name.toLowerCase().endsWith('.docx')) ||
+          (file.mimeType && file.mimeType.includes('wordprocessingml'))
+        ) {
+          if (typeof mammoth !== 'undefined') {
+            const res = await fetch(`https://www.googleapis.com/drive/v3/files/${encodeURIComponent(file.id)}?alt=media&supportsAllDrives=true`, {
+              headers: { 'Authorization': `Bearer ${accessToken}` }
+            });
+            if (!res.ok) return '';
+            const arrayBuffer = await res.arrayBuffer();
+            const result = await mammoth.extractRawText({ arrayBuffer });
+            return result.value || '';
+          }
+        }
+      } catch (err) {
+        console.warn('Lecture du fichier Fiche impossible :', file.name, err);
+      }
+      return '';
+    }
+
+    async function saveCommentsToDriveForStudent(student, commentText) {
+      if (!accessToken) {
+        showToast('Enregistré localement. Connectez Google Drive pour sauvegarder sur Drive.', 'info');
+        el.notesSavedStatus.textContent = 'Enregistré localement';
+        return;
+      }
+
+      el.notesSavedStatus.textContent = 'Sauvegarde sur Drive...';
+      try {
+        const q = `'${student.id}' in parents and name = '${COMMENTS_FILENAME}' and trashed = false`;
+        const existingFiles = await listAllDriveItems(q, 'files(id, name)');
+
+        if (existingFiles.length > 0) {
+          const targetId = existingFiles[0].id;
+          const res = await fetch(`https://www.googleapis.com/upload/drive/v3/files/${encodeURIComponent(targetId)}?uploadType=media&supportsAllDrives=true`, {
+            method: 'PATCH',
+            headers: {
+              'Authorization': `Bearer ${accessToken}`,
+              'Content-Type': 'text/plain; charset=UTF-8'
+            },
+            body: commentText
+          });
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        } else {
+          const boundary = '-------314159265358979323846';
+          const metadata = {
+            name: COMMENTS_FILENAME,
+            mimeType: 'text/plain',
+            parents: [student.id]
+          };
+          const multipartBody =
+            `--${boundary}\r\n` +
+            `Content-Type: application/json; charset=UTF-8\r\n\r\n` +
+            `${JSON.stringify(metadata)}\r\n` +
+            `--${boundary}\r\n` +
+            `Content-Type: text/plain; charset=UTF-8\r\n\r\n` +
+            `${commentText}\r\n` +
+            `--${boundary}--`;
+
+          const res = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&supportsAllDrives=true', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${accessToken}`,
+              'Content-Type': `multipart/related; boundary="${boundary}"`
+            },
+            body: multipartBody
+          });
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        }
+
+        await saveGlobalStateToDrive();
+        el.notesSavedStatus.textContent = 'Sauvegardé sur Google Drive ✓';
+        showToast(`Commentaires sauvegardés dans le dossier Drive de ${student.name}.`);
+      } catch (err) {
+        console.error('Erreur sauvegarde commentaires Drive :', err);
+        el.notesSavedStatus.textContent = 'Enregistré en local (échec Drive)';
+        showToast(`Sauvegarde Drive impossible : ${err.message}`, 'error');
+      }
+    }
+
+    function connectGoogleDrive(silent = false) {
+      if (!settings.clientId || !settings.folderId) {
+        if (!silent) {
+          openSettingsModal();
+          showToast('Renseignez votre Client ID et l\'ID du dossier Drive.', 'info');
+        }
+        return;
+      }
+      if (typeof google === 'undefined' || !google.accounts || !google.accounts.oauth2) {
+        if (!silent) {
+          showToast('Le module Google Identity n\'est pas encore chargé, réessayez.', 'error');
+        }
+        return;
+      }
+
+      tokenClient = google.accounts.oauth2.initTokenClient({
+        client_id: settings.clientId.trim(),
+        scope: 'https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/drive.file',
+        callback: async (tokenResponse) => {
+          if (tokenResponse && tokenResponse.access_token) {
+            accessToken = tokenResponse.access_token;
+            updateConnectionBadge(true);
+            if (!silent) showToast('Connexion à Google Drive réussie ! Chargement...');
+            await loadGlobalStateFromDrive();
+            await syncFolderTreeFromDrive(false);
+          }
+        }
+      });
+
+      tokenClient.requestAccessToken({ prompt: silent ? '' : 'consent' });
+    }
+
+    async function syncFolderTreeFromDrive(showSuccessToast = true) {
+      if (!accessToken) {
+        connectGoogleDrive(false);
+        return;
+      }
+
+      try {
+        const rootId = settings.folderId.trim();
+        const rootMeta = await driveApiGet(`https://www.googleapis.com/drive/v3/files/${encodeURIComponent(rootId)}?fields=id,name&supportsAllDrives=true`);
+
+        const qFirstLevel = `'${rootId}' in parents and mimeType = 'application/vnd.google-apps.folder' and trashed = false`;
+        const firstLevelFolders = await listAllDriveItems(qFirstLevel, 'files(id, name)');
+
+        if (firstLevelFolders.length === 0) {
+          showToast('Aucun sous-dossier trouvé dans le dossier Drive indiqué.', 'info');
+          return;
+        }
+
+        const existingMap = new Map(studentsData.map((s) => [s.id, s]));
+        const newSchools = [];
+        const newStudents = [];
+
+        const looksLikeDirectSchool = firstLevelFolders.every((f) => isStudentFolderPattern(f.name));
+
+        if (looksLikeDirectSchool) {
+          const singleSchoolObj = {
+            id: rootMeta.id,
+            name: rootMeta.name,
+            displayName: getSchoolDisplayName({ id: rootMeta.id, name: rootMeta.name })
+          };
+          newSchools.push(singleSchoolObj);
+
+          firstLevelFolders.forEach((stFolder) => {
+            const parsed = parseStudentFolderName(stFolder.name);
+            const prev = existingMap.get(stFolder.id);
+            const resolvedLevel = studentLevelOverrides[stFolder.id] || (prev ? prev.level : parsed.level);
+            newStudents.push({
+              id: stFolder.id,
+              folderName: stFolder.name,
+              name: parsed.name,
+              birthYear: parsed.birthYear,
+              level: resolvedLevel,
+              schoolId: singleSchoolObj.id,
+              schoolName: singleSchoolObj.displayName,
+              documents: prev ? prev.documents : [],
+              ficheText: prev ? prev.ficheText : '',
+              hasSyncedDocs: prev ? prev.hasSyncedDocs : false
+            });
+          });
+        } else {
+          for (const schoolFolder of firstLevelFolders) {
+            const schoolObj = {
+              id: schoolFolder.id,
+              name: schoolFolder.name,
+              displayName: getSchoolDisplayName({ id: schoolFolder.id, name: schoolFolder.name })
+            };
+            newSchools.push(schoolObj);
+
+            const qStudents = `'${schoolFolder.id}' in parents and mimeType = 'application/vnd.google-apps.folder' and trashed = false`;
+            const studentFolders = await listAllDriveItems(qStudents, 'files(id, name)');
+
+            studentFolders.forEach((stFolder) => {
+              const parsed = parseStudentFolderName(stFolder.name);
+              const prev = existingMap.get(stFolder.id);
+              const resolvedLevel = studentLevelOverrides[stFolder.id] || (prev ? prev.level : parsed.level);
+              newStudents.push({
+                id: stFolder.id,
+                folderName: stFolder.name,
+                name: parsed.name,
+                birthYear: parsed.birthYear,
+                level: resolvedLevel,
+                schoolId: schoolObj.id,
+                schoolName: schoolObj.displayName,
+                documents: prev ? prev.documents : [],
+                ficheText: prev ? prev.ficheText : '',
+                hasSyncedDocs: prev ? prev.hasSyncedDocs : false
+              });
+            });
+          }
+        }
+
+        newSchools.sort((a, b) => a.displayName.localeCompare(b.displayName, 'fr'));
+        schoolsData = newSchools;
+        studentsData = newStudents;
+        syncSchoolDisplayNamesInStudents();
+
+        if (selectedSchoolFilter === 'ALL' && schoolsData.length > 0) {
+          selectedSchoolFilter = schoolsData[0].id;
+        }
+
+        if (!currentStudentId || !studentsData.some((s) => s.id === currentStudentId)) {
+          const visible = getFilteredStudents();
+          currentStudentId = visible.length > 0 ? visible[0].id : (studentsData[0] ? studentsData[0].id : null);
+        }
+
+        const nowStr = `Synchro ${new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`;
+        saveCacheToStorage(nowStr);
+        await saveGlobalStateToDrive();
+        populateSchoolSelect();
+        renderStudentList();
+
+        if (currentStudentId) {
+          const currentSt = studentsData.find((s) => s.id === currentStudentId);
+          renderStudentDetail(currentSt);
+          if (currentSt && !currentSt.hasSyncedDocs) {
+            await loadDocumentsForStudent(currentSt, true);
+          }
+        }
+
+        if (showSuccessToast) {
+          showToast(`${schoolsData.length} école(s) et ${studentsData.length} élève(s) synchronisés.`);
+        }
+      } catch (err) {
+        console.error(err);
+        showToast(err.message || 'Erreur lors de la lecture du Google Drive.', 'error');
+      }
+    }
+
+    async function loadDocumentsForStudent(student, silent = false) {
+      if (!accessToken) {
+        if (!silent) {
+          showToast('Connectez Google Drive pour actualiser les documents.', 'info');
+          connectGoogleDrive(false);
+        }
+        return;
+      }
+
+      if (!silent) {
+        el.btnRefreshStudentDocs.disabled = true;
+        el.btnRefreshStudentDocs.classList.add('opacity-60');
+      }
+
+      try {
+        const qFiles = `'${student.id}' in parents and mimeType != 'application/vnd.google-apps.folder' and trashed = false`;
+        const files = await listAllDriveItems(qFiles, 'files(id, name, mimeType, modifiedTime, webViewLink)');
+
+        files.sort((a, b) => new Date(b.modifiedTime || 0) - new Date(a.modifiedTime || 0));
+
+        const commentFile = files.find((f) => f.name === COMMENTS_FILENAME);
+        if (commentFile) {
+          const driveCommentText = await extractTextFromDriveFile(commentFile);
+          if (driveCommentText && driveCommentText.trim()) {
+            studentNotes[student.id] = driveCommentText;
+            saveStudentNotesToStorage();
+          }
+        }
+
+        student.documents = files.filter((f) => f.name !== COMMENTS_FILENAME && f.name !== DRIVE_STATE_FILENAME);
+        student.hasSyncedDocs = true;
+
+        const { doc: ficheDoc } = getActiveFicheDocument(student);
+        if (ficheDoc) {
+          student.ficheText = await extractTextFromDriveFile(ficheDoc);
+        } else {
+          student.ficheText = '';
+        }
+
+        const nowStr = `Synchro ${new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`;
+        saveCacheToStorage(nowStr);
+        if (!isSchoolSyncing) {
+          scheduleGlobalStateSaveToDrive();
+        }
+        renderStudentList();
+
+        if (currentStudentId === student.id) {
+          renderStudentDetail(student);
+        }
+
+        if (!silent) {
+          showToast(`${student.documents.length} document(s) synchronisé(s) pour ${student.name}.`);
+        }
+      } catch (err) {
+        console.error(err);
+        if (!silent) {
+          showToast(err.message || 'Impossible de lire les documents de cet élève.', 'error');
+        }
+      } finally {
+        if (!silent) {
+          el.btnRefreshStudentDocs.disabled = false;
+          el.btnRefreshStudentDocs.classList.remove('opacity-60');
+        }
+      }
+    }
+
+    // Synchronisation complète de l'école sélectionnée
+    async function syncEntireSelectedSchool() {
+      if (isSchoolSyncing) return;
+      if (!accessToken) {
+        connectGoogleDrive(false);
+        return;
+      }
+
+      isSchoolSyncing = true;
+      el.btnSyncSchool.disabled = true;
+      el.btnSyncSchool.classList.add('opacity-60');
+      el.schoolSyncProgressBox.classList.remove('hidden');
+      el.schoolSyncProgressText.textContent = 'Actualisation des dossiers...';
+      el.schoolSyncProgressCount.textContent = '';
+      el.schoolSyncProgressBar.style.width = '5%';
+
+      try {
+        await syncFolderTreeFromDrive(false);
+
+        const targetStudents = studentsData.filter((st) =>
+          selectedSchoolFilter === 'ALL' || st.schoolId === selectedSchoolFilter
+        );
+
+        const total = targetStudents.length;
+        if (total === 0) {
+          showToast('Aucun élève trouvé dans cette école.', 'info');
+          return;
+        }
+
+        for (let i = 0; i < total; i++) {
+          const st = targetStudents[i];
+          const pct = Math.round(((i + 1) / total) * 100);
+          el.schoolSyncProgressText.textContent = `Sync : ${st.name}`;
+          el.schoolSyncProgressCount.textContent = `${i + 1}/${total}`;
+          el.schoolSyncProgressBar.style.width = `${pct}%`;
+
+          await loadDocumentsForStudent(st, true);
+        }
+
+        const schoolLabel = selectedSchoolFilter === 'ALL'
+          ? 'toutes les écoles'
+          : (schoolsData.find((s) => s.id === selectedSchoolFilter)?.displayName || 'l\'école');
+
+        await saveGlobalStateToDrive();
+        showToast(`Synchronisation terminée : ${total} élève(s) mis à jour pour ${schoolLabel}.`);
+      } catch (err) {
+        console.error(err);
+        showToast(err.message || 'Erreur lors de la synchronisation de l\'école.', 'error');
+      } finally {
+        isSchoolSyncing = false;
+        el.btnSyncSchool.disabled = false;
+        el.btnSyncSchool.classList.remove('opacity-60');
+        setTimeout(() => {
+          el.schoolSyncProgressBox.classList.add('hidden');
+        }, 1200);
+      }
+    }
+
+    // =========================================================================
+    // MODALE PARAMÈTRES & PROMPT GEMINI PERSONNALISABLE
+    // =========================================================================
+    function openSettingsModal() {
+      el.inputClientId.value = settings.clientId || '';
+      el.inputFolderId.value = settings.folderId || '';
+      el.inputGeminiPrompt.value = settings.geminiPrompt || DEFAULT_GEMINI_PROMPT;
+      el.settingsModal.classList.remove('hidden');
+    }
+
+    function closeSettingsModal() {
+      el.settingsModal.classList.add('hidden');
+    }
+
+    function readSettingsInputs() {
+      settings.clientId = el.inputClientId.value.trim();
+      let rawFolder = el.inputFolderId.value.trim();
+      const folderMatch = rawFolder.match(/\/folders\/([a-zA-Z0-9_-]+)/);
+      if (folderMatch) rawFolder = folderMatch[1];
+      settings.folderId = rawFolder;
+      el.inputFolderId.value = rawFolder;
+
+      const customPrompt = el.inputGeminiPrompt.value.trim();
+      settings.geminiPrompt = customPrompt || DEFAULT_GEMINI_PROMPT;
+      saveSettingsToStorage();
+    }
+
+    // =========================================================================
+    // SUPPORT INSTALLATION SUR BUREAU / TABLETTE
+    // =========================================================================
+    let deferredInstallPrompt = null;
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredInstallPrompt = e;
+      el.btnInstallApp.classList.remove('hidden');
+    });
+
+    el.btnInstallApp.addEventListener('click', async () => {
+      if (!deferredInstallPrompt) return;
+      deferredInstallPrompt.prompt();
+      const { outcome } = await deferredInstallPrompt.userChoice;
+      if (outcome === 'accepted') {
+        el.btnInstallApp.classList.add('hidden');
+        showToast('Application installée sur votre appareil !');
+      }
+      deferredInstallPrompt = null;
+    });
+
+    // =========================================================================
+    // ÉCOUTEURS D'ÉVÉNEMENTS
+    // =========================================================================
+    el.schoolSelect.addEventListener('change', (e) => {
+      selectedSchoolFilter = e.target.value;
+      el.renameSchoolBox.classList.add('hidden');
+      updateEditSchoolButtonState();
+      const visible = getFilteredStudents();
+      if (visible.length > 0 && !visible.some((s) => s.id === currentStudentId)) {
+        selectStudent(visible[0].id);
+      } else {
+        saveCacheToStorage();
+        renderStudentList();
+      }
+    });
+
+    // Renommer une école
+    el.btnEditSchoolName.addEventListener('click', () => {
+      const targetSchool = getTargetSchoolForRename();
+      if (!targetSchool) {
+        showToast('Sélectionnez d\'abord une école précise dans la liste déroulante.', 'info');
+        return;
+      }
+      el.renameSchoolOriginal.textContent = `Dossier : ${targetSchool.name}`;
+      el.inputSchoolCustomName.value = getSchoolDisplayName(targetSchool);
+      el.renameSchoolBox.classList.remove('hidden');
+      el.inputSchoolCustomName.focus();
+      el.inputSchoolCustomName.select();
+    });
+
+    el.btnCancelRenameSchool.addEventListener('click', () => {
+      el.renameSchoolBox.classList.add('hidden');
+    });
+
+    el.btnResetSchoolName.addEventListener('click', async () => {
+      const targetSchool = getTargetSchoolForRename();
+      if (!targetSchool) return;
+      delete schoolCustomNames[targetSchool.id];
+      saveSchoolNamesToStorage();
+      syncSchoolDisplayNamesInStudents();
+      saveCacheToStorage();
+      populateSchoolSelect();
+      renderStudentList();
+      const currentSt = studentsData.find((s) => s.id === currentStudentId);
+      if (currentSt) renderStudentDetail(currentSt);
+      el.renameSchoolBox.classList.add('hidden');
+      const syncRes = await saveGlobalStateToDrive();
+      if (syncRes && syncRes.ok) {
+        showToast(`Nom d'origine rétabli (${targetSchool.name}) et sauvegardé sur Drive.`);
+      } else {
+        showToast(`Nom d'origine rétabli en local (${targetSchool.name}).`, 'info');
+      }
+    });
+
+    el.btnSaveSchoolName.addEventListener('click', async () => {
+      const targetSchool = getTargetSchoolForRename();
+      if (!targetSchool) return;
+      const newName = el.inputSchoolCustomName.value.trim();
+      if (!newName) {
+        showToast('Veuillez saisir un nom d\'école valide.', 'error');
+        return;
+      }
+      if (newName === targetSchool.name) {
+        delete schoolCustomNames[targetSchool.id];
+      } else {
+        schoolCustomNames[targetSchool.id] = newName;
+      }
+      saveSchoolNamesToStorage();
+      syncSchoolDisplayNamesInStudents();
+      saveCacheToStorage();
+      populateSchoolSelect();
+      renderStudentList();
+      const currentSt = studentsData.find((s) => s.id === currentStudentId);
+      if (currentSt) renderStudentDetail(currentSt);
+      el.renameSchoolBox.classList.add('hidden');
+      const syncRes = await saveGlobalStateToDrive();
+      if (syncRes && syncRes.ok) {
+        showToast(`École renommée en « ${newName} » et sauvegardée dans ${DRIVE_STATE_FILENAME}.`);
+      } else if (!accessToken) {
+        showToast(`École renommée en « ${newName} » (connectez Drive pour synchroniser le fichier).`, 'info');
+      } else {
+        showToast(`Renommée en local, mais erreur Drive : ${syncRes.error}`, 'error');
+      }
+    });
+
+    el.inputSchoolCustomName.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        el.btnSaveSchoolName.click();
+      } else if (e.key === 'Escape') {
+        el.renameSchoolBox.classList.add('hidden');
+      }
+    });
+
+    el.searchInput.addEventListener('input', (e) => {
+      searchQuery = e.target.value;
+      renderStudentList();
+    });
+
+    // Changement manuel de la classe de l'élève
+    el.studentLevelSelect.addEventListener('change', (e) => {
+      const student = studentsData.find((s) => s.id === currentStudentId);
+      if (!student) return;
+      const newLevel = e.target.value;
+      student.level = newLevel;
+      studentLevelOverrides[student.id] = newLevel;
+      saveLevelOverridesToStorage();
+      saveCacheToStorage();
+      scheduleGlobalStateSaveToDrive();
+      renderStudentList();
+      showToast(`Classe de ${student.name} enregistrée : ${newLevel}.`);
+    });
+
+    // Choix manuel du document Fiche de référence
+    el.btnToggleFicheSelector.addEventListener('click', () => {
+      const isHidden = el.ficheReferenceSelectorBox.classList.contains('hidden');
+      if (isHidden) {
+        el.ficheSelectorPromptTitle.textContent = 'Changer le document « Fiche » de référence';
+        el.btnCancelFicheSelector.classList.remove('hidden');
+        el.ficheReferenceSelectorBox.classList.remove('hidden');
+      } else {
+        el.ficheReferenceSelectorBox.classList.add('hidden');
+      }
+    });
+
+    el.btnCancelFicheSelector.addEventListener('click', () => {
+      el.ficheReferenceSelectorBox.classList.add('hidden');
+    });
+
+    el.btnConfirmFicheReference.addEventListener('click', async () => {
+      const student = studentsData.find((s) => s.id === currentStudentId);
+      if (!student) return;
+      const selectedDocId = el.selectFicheReferenceDoc.value;
+      if (!selectedDocId) {
+        showToast('Veuillez sélectionner un document dans la liste.', 'info');
+        return;
+      }
+
+      const chosenDoc = (student.documents || []).find((d) => d.id === selectedDocId);
+      if (!chosenDoc) return;
+
+      studentFicheChoices[student.id] = chosenDoc.id;
+      saveFicheChoicesToStorage();
+      el.ficheReferenceSelectorBox.classList.add('hidden');
+
+      if (accessToken) {
+        el.ficheContentCard.innerHTML = `<p class="text-sm text-slate-500 italic">Lecture de <strong>${escapeHtml(chosenDoc.name)}</strong> en cours...</p>`;
+        student.ficheText = await extractTextFromDriveFile(chosenDoc);
+      } else {
+        student.ficheText = '';
+      }
+
+      saveCacheToStorage();
+      scheduleGlobalStateSaveToDrive();
+      renderStudentList();
+      renderStudentDetail(student);
+      showToast(`Document de référence enregistré : ${chosenDoc.name}`);
+    });
+
+    // Commentaires : sauvegarde locale automatique + sauvegarde sur Google Drive
+    el.studentNotesTextarea.addEventListener('input', (e) => {
+      if (!currentStudentId) return;
+      studentNotes[currentStudentId] = e.target.value;
+      saveStudentNotesToStorage();
+      el.notesSavedStatus.textContent = 'Enregistré en local (non synchronisé Drive)';
+      clearTimeout(notesSaveTimer);
+      notesSaveTimer = setTimeout(() => {
+        if (accessToken) {
+          const st = studentsData.find((s) => s.id === currentStudentId);
+          if (st) saveCommentsToDriveForStudent(st, studentNotes[currentStudentId] || '');
+        }
+      }, 2500);
+    });
+
+    el.btnSaveCommentsDrive.addEventListener('click', () => {
+      const student = studentsData.find((s) => s.id === currentStudentId);
+      if (!student) return;
+      const text = el.studentNotesTextarea.value;
+      studentNotes[student.id] = text;
+      saveStudentNotesToStorage();
+      saveCommentsToDriveForStudent(student, text);
+    });
+
+    // Synchroniser toute l'école sélectionnée
+    el.btnSyncSchool.addEventListener('click', () => {
+      syncEntireSelectedSchool();
+    });
+
+    // Synchroniser uniquement l'élève affiché
+    el.btnRefreshStudentDocs.addEventListener('click', () => {
+      const student = studentsData.find((s) => s.id === currentStudentId);
+      if (student) loadDocumentsForStudent(student, false);
+    });
+
+    // Synthèse Gemini avec le prompt personnalisé
+    el.btnOpenGeminiPrompt.addEventListener('click', async () => {
+      const student = studentsData.find((s) => s.id === currentStudentId);
+      if (!student) return;
+
+      const template = settings.geminiPrompt || DEFAULT_GEMINI_PROMPT;
+      const finalPrompt = template
+        .replace(/\{DOSSIER\}/g, student.folderName || student.name)
+        .replace(/\{ELEVE\}/g, student.name)
+        .replace(/\{ECOLE\}/g, student.schoolName || '');
+
+      try {
+        await navigator.clipboard.writeText(finalPrompt);
+        showToast(`Prompt copié pour ${student.name} ! Collez-le (Ctrl+V) dans Gemini.`);
+      } catch (e) {
+        showToast('Ouverture de Gemini...', 'info');
+      }
+      window.open('https://gemini.google.com/app', '_blank', 'noopener');
+    });
+
+    // Paramètres
+    el.btnOpenSettings.addEventListener('click', openSettingsModal);
+    el.btnEmptySettings.addEventListener('click', openSettingsModal);
+    el.btnCloseSettings.addEventListener('click', closeSettingsModal);
+    el.settingsModal.addEventListener('click', (e) => {
+      if (e.target === el.settingsModal) closeSettingsModal();
+    });
+
+    el.btnResetPrompt.addEventListener('click', () => {
+      el.inputGeminiPrompt.value = DEFAULT_GEMINI_PROMPT;
+      showToast('Prompt par défaut rétabli.', 'info');
+    });
+
+    el.btnExportConfig.addEventListener('click', async () => {
+      readSettingsInputs();
+      const exportPayload = JSON.stringify({
+        clientId: settings.clientId,
+        folderId: settings.folderId,
+        geminiPrompt: settings.geminiPrompt
+      });
+      try {
+        await navigator.clipboard.writeText(exportPayload);
+        showToast('Configuration copiée dans le presse-papiers !');
+      } catch (e) {
+        el.inputImportConfigJson.value = exportPayload;
+        el.importConfigBox.classList.remove('hidden');
+        showToast('Copiez le texte affiché ci-dessous.', 'info');
+      }
+    });
+
+    el.btnImportConfig.addEventListener('click', () => {
+      el.importConfigBox.classList.toggle('hidden');
+      el.inputImportConfigJson.focus();
+    });
+
+    el.btnApplyImportedConfig.addEventListener('click', () => {
+      try {
+        const parsed = JSON.parse(el.inputImportConfigJson.value.trim());
+        if (parsed.clientId !== undefined) el.inputClientId.value = parsed.clientId;
+        if (parsed.folderId !== undefined) el.inputFolderId.value = parsed.folderId;
+        if (parsed.geminiPrompt !== undefined) el.inputGeminiPrompt.value = parsed.geminiPrompt;
+        readSettingsInputs();
+        el.importConfigBox.classList.add('hidden');
+        el.inputImportConfigJson.value = '';
+        showToast('Configuration restaurée avec succès !');
+      } catch (e) {
+        showToast('Format invalide : collez exactement la configuration copiée.', 'error');
+      }
+    });
+
+    el.btnSaveSettingsOnly.addEventListener('click', () => {
+      readSettingsInputs();
+      closeSettingsModal();
+      showToast('Paramètres enregistrés.');
+    });
+
+    el.btnSaveAndConnect.addEventListener('click', () => {
+      readSettingsInputs();
+      closeSettingsModal();
+      connectGoogleDrive(false);
+    });
+
+    el.btnConnectDrive.addEventListener('click', () => connectGoogleDrive(false));
+    el.btnEmptyConnect.addEventListener('click', () => connectGoogleDrive(false));
+    el.btnPrint.addEventListener('click', () => window.print());
+
+    // =========================================================================
+    // INITIALISATION AU CHARGEMENT
+    // =========================================================================
+    loadAllFromLocalStorage();
+    updateConnectionBadge(false);
+    populateSchoolSelect();
+    renderStudentList();
+
+    if (currentStudentId) {
+      const initialStudent = studentsData.find((s) => s.id === currentStudentId);
+      if (initialStudent) renderStudentDetail(initialStudent);
+    }
+
+    if (!settings.clientId || !settings.folderId) {
+      setTimeout(() => openSettingsModal(), 250);
+    }
+  </script>
+</body>
+</html>
